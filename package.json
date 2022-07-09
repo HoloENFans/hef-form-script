@@ -1,0 +1,14 @@
+{
+	"scripts": {
+		"tw:export": "node ./utils/css.js",
+		"tw:build": "tailwindcss -i ./src/styles/tailwind.css -o ./views/styles/output.css",
+		"tw:watch": "tailwindcss --watch -i ./src/styles/tailwind.css -o ./styles/output.css",
+		"push": "pnpm tw:build && pnpm tw:export && clasp push"
+	},
+	"devDependencies": {
+		"tailwindcss": "^3.1.5"
+	},
+	"dependencies": {
+		"daisyui": "^2.18.1"
+	}
+}
