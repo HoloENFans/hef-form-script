@@ -10,8 +10,7 @@
 
 <body>
 	<!-- Below is the HTML code that defines the sidebar element structure. -->
-	<div class="dark h-[448px]"
-		x-data="{ step: 0, apiKey: '', alert: null }">
+	<div class="dark h-[448px]" x-data="mainData">
 		<div class="h-[400px] flex-grow flex flex-col pt-2 pb-4">
 			<!-- Top steps -->
 			<ul class="steps">
@@ -22,7 +21,7 @@
 
 			<!-- Steps content -->
 			<div class="flex flex-col px-4 py-4 items-center justify-center flex-grow">
-				<div x-show="step === 0" class="flex flex-col gap-2">
+				<div x-show="step === 0" class="flex flex-col gap-2 min-w-full">
 					<div class="form-control">
 						<label class="label">
 							<span class="label-text">Your API key:</span>
@@ -35,23 +34,174 @@
 					.withSuccessHandler(
 					  function() {
 						apiKey = '';
-						alert = { type: 'success', message: 'Saved succesfully.' }
+						alert = { type: 'success', message: 'Saved succesfully.' };
+						$data.updateProjects();
 					  })
 					.withFailureHandler(
 					  function() {
-						alert = { type: 'error', message: 'Something went wrong. Try again.' }
+						alert = { type: 'error', message: 'Something went wrong. Try again.' };
 					  })
 					.setApiKey(apiKey)">
 						Set key
 					</button>
 				</div>
 
-				<div x-show="step === 1" class="flex flex-col gap-2">
-					Step 2
+				<div x-show="step === 1" class="flex flex-col gap-2 min-w-full">
+					<div class="form-control">
+						<label class="label">
+							<span class="label-text">Your project:</span>
+						</label>
+						<select class="input input-bordered" x-model="projectId">
+							<template x-for="[projectName, projectId] of projects">
+								<option x-bind:value="projectId" x-text="projectName"></option>
+							</template>
+						</select>
+						<span class="label-text">Loading might take a while, this is because of Google.</span>
+					</div>
+
+					<div class="flex gap-2">
+						<button class="btn btn-primary btn-sm" x-bind:disabled="projectId.trim().length === 0" @click="google.script.run
+							.withSuccessHandler(
+							function() {
+								alert = { type: 'success', message: 'Saved succesfully.' };
+							})
+							.withFailureHandler(
+							function() {
+								alert = { type: 'error', message: 'Something went wrong. Try again.' };
+							})
+							.setProject(projectId)">
+							Set project
+						</button>
+
+						<button class="btn btn-secondary btn-sm" @click="$data.updateProjects()"
+							x-bind:disabled="refreshingProjects" title="Reload projects">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+								fill="currentColor">
+								<path fill-rule="evenodd"
+									d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+									clip-rule="evenodd" />
+							</svg>
+						</button>
+					</div>
 				</div>
 
-				<div x-show="step === 2" class="flex flex-col gap-2">
-					Step 3
+				<div x-show="step === 2" class="flex flex-col gap-2 min-w-full overflow-y-scroll h-[220px]">
+					<div class="flex flex-col items-center gap-2">
+						<span class="font-bold">Accepts:</span>
+						<div class="form-control">
+							<label class="label cursor-pointer flex gap-2 items-center">
+								<span>Messages</span>
+								<input type="checkbox" class="checkbox" x-model="accepts.messages" />
+							</label>
+						</div>
+						<div class="form-control">
+							<label class="label cursor-pointer flex gap-2 items-center">
+								<span>Author pfp</span>
+								<input type="checkbox" class="checkbox" x-model="accepts.authorIcon" />
+							</label>
+						</div>
+						<div class="form-control">
+							<label class="label cursor-pointer flex gap-2 items-center">
+								<span>Images</span>
+								<input type="checkbox" class="checkbox" x-model="accepts.images" />
+							</label>
+						</div>
+						<div class="form-control">
+							<label class="label cursor-pointer flex gap-2 items-center">
+								<span>Videos</span>
+								<input type="checkbox" class="checkbox" x-model="accepts.videos" />
+							</label>
+						</div>
+					</div>
+
+					<hr class="border-top border-white" />
+
+					<div class="flex flex-col items-center gap-2">
+						<span class="font-bold">Fields:</span>
+
+						<div class="form-control">
+							<label class="label cursor-pointer flex gap-2 items-center">
+								<span>Author name:</span>
+								<select class="input input-bordered" x-model="selectedFields.author">
+									<template x-for="[fieldName, fieldId] of fields.text">
+										<option x-bind:value="fieldId" x-text="fieldName"></option>
+									</template>
+								</select>
+							</label>
+						</div>
+
+						<div class="form-control" x-show="accepts.authorIcon">
+							<label class="label cursor-pointer flex gap-2 items-center">
+								<span>Author pfp:</span>
+								<select class="input input-bordered" x-model="selectedFields.authorIcon">
+									<template x-for="[fieldName, fieldId] of fields.upload">
+										<option x-bind:value="fieldId" x-text="fieldName"></option>
+									</template>
+								</select>
+							</label>
+						</div>
+					</div>
+
+					<div class="form-control" x-show="accepts.messages">
+						<label class="label cursor-pointer flex gap-2 items-center">
+							<span>Message:</span>
+							<select class="input input-bordered" x-model="selectedFields.message" multiple>
+								<template x-for="[fieldName, fieldId] of fields.text">
+									<option x-bind:value="fieldId" x-text="fieldName"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<div class="form-control" x-show="accepts.images">
+						<label class="label cursor-pointer flex gap-2 items-center">
+							<span>Image:</span>
+							<select class="input input-bordered" x-model="selectedFields.image">
+								<template x-for="[fieldName, fieldId] of fields.upload">
+									<option x-bind:value="fieldId" x-text="fieldName"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<div class="form-control" x-show="accepts.videos">
+						<label class="label cursor-pointer flex gap-2 items-center">
+							<span>Video link:</span>
+							<select class="input input-bordered" x-model="selectedFields.videoSrc">
+								<template x-for="[fieldName, fieldId] of fields.text">
+									<option x-bind:value="fieldId" x-text="fieldName"></option>
+								</template>
+							</select>
+						</label>
+					</div>
+
+					<div class="flex gap-2">
+						<button class="btn btn-primary btn-sm" @click="google.script.run
+						.withSuccessHandler(
+						function() {
+							alert = { type: 'success', message: 'Saved succesfully.' };
+						})
+						.withFailureHandler(
+						function() {
+							alert = { type: 'error', message: 'Something went wrong. Try again.' };
+						})
+						.saveFields({ enabled: accepts, selected: selectedFields})">
+							Save fields
+						</button>
+
+						<button class="btn btn-secondary btn-sm" @click="$data.updateFields()"
+							x-bind:disabled="refreshingFields" title="Reload fields">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20"
+								fill="currentColor">
+								<path fill-rule="evenodd"
+									d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+									clip-rule="evenodd" />
+							</svg>
+						</button>
+					</div>
+
+					<hr class="border-top border-white" />
+
 					<button class="btn btn-accent" @click="google.script.run.showDialog()">
 						Enable hook
 					</button>
@@ -59,23 +209,22 @@
 			</div>
 
 			<!-- Alert bar -->
-			<div x-show="alert !== null"
-				class="alert alert-sm absolute top-[10px] flex z-10 cursor-pointer" :class="(alert.type === 'error' && 'alert-error') || (alert.type === 'success' && 'alert-success mouse')"
-				@click="alert = null"
-				>
+			<div x-show="alert !== null" class="alert alert-sm absolute top-[10px] flex z-10 cursor-pointer"
+				:class="(alert?.type === 'error' && 'alert-error') || (alert?.type === 'success' && 'alert-success mouse')"
+				@click="alert = null">
 				<div class="flex items-center gap-2">
-					<svg x-show="alert.type === 'error'" xmlns="http://www.w3.org/2000/svg"
+					<svg x-show="alert?.type === 'error'" xmlns="http://www.w3.org/2000/svg"
 						class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
 							d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
 					</svg>
-					<svg x-show="alert.type === 'success'" xmlns="http://www.w3.org/2000/svg"
+					<svg x-show="alert?.type === 'success'" xmlns="http://www.w3.org/2000/svg"
 						class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
 							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 					</svg>
 
-					<span x-text="alert.message"></span>
+					<span x-text="alert?.message"></span>
 				</div>
 			</div>
 
@@ -105,6 +254,121 @@
 
 		<a href="https://holoen.fans" target="_blank">HoloEN Fan Website</a>
 	</div>
+
+	<script>
+		const mainData = () => ({
+			step: 0,
+			alert: null,
+			accepts: {
+				messages: true,
+				authorIcon: false,
+				images: false,
+				videos: false,
+			},
+
+			apiKey: '',
+
+			projects: [],
+			projectId: '',
+			refreshingProjects: false,
+			projectsFirstRun: true,
+
+			fields: { text: [], upload: [] },
+			selectedFields: { author: '', authorIcon: '', message: [], videoSrc: '' },
+			refreshingFields: false,
+			fieldsFirstRun: true,
+
+			oldData: {},
+
+			updateProjects() {
+				const currentFirstRun = this.fieldsFirstRun;
+
+				if (!this.projectsFirstRun) this.refreshingProjects = true;
+				else this.projectsFirstRun = false;
+
+				google.script.run
+					.withFailureHandler(() => {
+						this.alert = { type: 'error', message: 'Something went wrong. Try again.' };
+						this.refreshingProjects = false;
+
+						if (currentFirstRun) this.fieldsFirstRun = true;
+					})
+					.withSuccessHandler((valid) => {
+						if (!valid) {
+							this.refreshingProjects = false;
+							return;
+						}
+						google.script.run
+							.withFailureHandler(() => {
+								this.alert = { type: 'error', message: 'Something went wrong. Try again.' };
+								this.refreshingProjects = false;
+
+								if (currentFirstRun) this.fieldsFirstRun = true;
+							})
+							.withSuccessHandler((projects) => {
+								this.projects = projects;
+								this.refreshingProjects = false;
+								this.alert = { type: 'success', message: 'Fetched projects.' };
+
+								// Code is here, but does nothing for selects...
+								if (currentFirstRun) this.projectId = this.oldData.projectId || this.projectId;
+							})
+							.getProjects();
+					})
+					.checkApiKey();
+			},
+			updateFields() {
+				const currentFirstRun = this.fieldsFirstRun;
+
+				if (!this.fieldsFirstRun) this.refreshingFields = true;
+				else this.fieldsFirstRun = false;
+
+				google.script.run
+					.withFailureHandler(() => {
+						this.alert = { type: 'error', message: 'Something went wrong. Try again.' };
+						this.refreshingFields = false;
+
+						if (currentFirstRun) this.fieldsFirstRun = true;
+					})
+					.withSuccessHandler((fields) => {
+						this.fields = fields;
+						this.refreshingFields = false;
+						this.alert = { type: 'success', message: 'Fetched fields.' };
+
+						if (currentFirstRun) {
+							// Code is here, but does nothing for selects...
+							this.selectedFields.author = (this.oldData.selectedFields && this.oldData.selectedFields.author) || this.selectedFields.author;
+							this.selectedFields.authorIcon = (this.oldData.selectedFields && this.oldData.selectedFields.authorIcon) || this.selectedFields.authorIcon;
+							this.selectedFields.message = (this.oldData.selectedFields && this.oldData.selectedFields.message) || this.selectedFields.message;
+							this.selectedFields.videoSrc = (this.oldData.selectedFields && this.oldData.selectedFields.videoSrc) || this.selectedFields.videoSrc;
+						}
+					})
+					.getFields();
+			},
+			getSetData() {
+				google.script.run
+					.withSuccessHandler((data) => {
+						// Code is here, but does nothing for selects...
+						this.selectedFields.author = (this.oldData.selectedFields && this.oldData.selectedFields.author) || this.selectedFields.author;
+						this.selectedFields.authorIcon = (this.oldData.selectedFields && this.oldData.selectedFields.authorIcon) || this.selectedFields.authorIcon;
+						this.selectedFields.message = (this.oldData.selectedFields && this.oldData.selectedFields.message) || this.selectedFields.message;
+						this.selectedFields.videoSrc = (this.oldData.selectedFields && this.oldData.selectedFields.videoSrc) || this.selectedFields.videoSrc;
+
+						this.accepts = data.enabledFields || this.accepts;
+
+						this.projectId = data.projectId || this.projectId;
+						this.oldData = data;
+					})
+					.getData();
+			},
+
+			init() {
+				this.getSetData();
+				this.updateFields();
+				this.updateProjects();
+			},
+		})
+	</script>
 
 	<script src="//unpkg.com/alpinejs" defer></script>
 </body>

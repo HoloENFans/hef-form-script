@@ -71,6 +71,112 @@ function checkApiKey() {
 }
 
 /**
+ * Function that returns all possible projects
+ * 
+ * @return {String[][]} List of Projects
+ */
+function getProjects() {
+	const documentProperties = PropertiesService.getDocumentProperties();
+	const apiKey = documentProperties.getProperty('HEFW:API_KEY');
+	
+	let moreProjects = true;
+	let page = 1;
+	const projectMap = [];
+
+	async function fetchNextProjects() {
+		// Fetch next page
+		const projects = UrlFetchApp.fetch(`${API_URL}/api/projects?where[status][not_equals]=past&page=${page}&depth=0`, {
+			headers: {
+				Authorization: `User API-Key ${apiKey}`
+			}
+		});
+		const body = JSON.parse(projects.getContentText());
+
+		for (const project of body.docs) {
+			projectMap.push([project.title, project.id])
+		}
+
+		// Set variables for next fetch
+		page += 1;
+		moreProjects = body.hasNextPage;
+	}
+	
+	while(moreProjects) {
+		fetchNextProjects();
+	}
+
+	return projectMap;
+}
+
+/**
+ * Saves the project id to the document properties
+ * 
+ * @param {String} id The project to save
+ */
+function setProject(id) {
+	const documentProperties = PropertiesService.getDocumentProperties();
+	documentProperties.setProperty('HEFW:PROJECT_ID', id);
+}
+
+/** Get all possible fields
+ * 
+ * @return {Object} An object containing all possible fields
+ */
+function getFields() {
+	const form = FormApp.getActiveForm();
+
+	let fields = {
+		text: [],
+		upload: [],
+	};
+
+	const textItems = [...form.getItems(FormApp.ItemType.TEXT), ...form.getItems(FormApp.ItemType.PARAGRAPH_TEXT)];
+	const uploadItems = form.getItems(FormApp.ItemType.FILE_UPLOAD);
+
+	for (const item of textItems) {
+		fields.text.push([item.getTitle(), item.getId()]);
+	}
+
+	for (const item of uploadItems) {
+		fields.upload.push([item.getTitle(), item.getId()]);
+	}
+
+	return fields;
+}
+
+/**
+ * Saves all the fields to the document properties
+ * 
+ * @param {Object} data The selected fields
+ */
+function saveFields(data) {
+	const documentProperties = PropertiesService.getDocumentProperties();
+
+	documentProperties.setProperty('HEFW:ENABLED', JSON.stringify(data.enabled));
+	documentProperties.setProperty('HEFW:FIELDS', JSON.stringify(data.selected))
+}
+
+/**
+ * Get the set data
+ * 
+ * @return (Object) All the set data
+ */
+function getData() {
+	const documentProperties = PropertiesService.getDocumentProperties();
+
+	const projectId = documentProperties.getProperty('HEFW:PROJECT_ID');
+	const enabledFields = JSON.parse(documentProperties.getProperty('HEFW:ENABLED'));
+	const selectedFields = JSON.parse(documentProperties.getProperty('HEFW:FIELDS'));
+
+	return {
+		projectId,
+		enabledFields,
+		selectedFields,
+	}
+}
+
+
+/**
  * Opens a dialog. The dialog structure is described in the Dialog.html
  * project file.
  */
@@ -139,5 +245,5 @@ function adjustFormSubmitTrigger(enableTrigger) {
  *      https://developers.google.com/apps-script/understanding_events
  */
 function respondToFormSubmit(e) {
-	// Do somethhing
+	// Do something
 }
