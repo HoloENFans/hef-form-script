@@ -1,0 +1,5 @@
+styles/
+node_modules/
+.vscode/
+views/Stylesheet.html
+tailwind.config.js

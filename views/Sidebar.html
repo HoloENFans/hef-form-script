@@ -30,7 +30,8 @@
 					</div>
 					<span class="label-text">You can find your API key in your profile on the CMS.</span>
 
-					<button class="btn btn-primary btn-sm" x-bind:disabled="apiKey.trim().length === 0" @click="google.script.run
+					<button class="btn btn-primary btn-sm"
+						x-bind:disabled="apiKey.trim().length === 0 || apiKey === '*****'" @click="google.script.run
 					.withSuccessHandler(
 					  function() {
 						apiKey = '';
@@ -53,7 +54,8 @@
 						</label>
 						<select class="input input-bordered" x-model="projectId">
 							<template x-for="[projectName, projectId] of projects">
-								<option x-bind:value="projectId" x-text="projectName"></option>
+								<option x-bind:value="projectId" x-text="projectName"
+									:selected="$data.projectId === projectId"></option>
 							</template>
 						</select>
 						<span class="label-text">Loading might take a while, this is because of Google.</span>
@@ -122,9 +124,12 @@
 						<div class="form-control">
 							<label class="label cursor-pointer flex gap-2 items-center">
 								<span>Author name:</span>
-								<select class="input input-bordered" x-model="selectedFields.author">
+								<select class="input input-bordered" x-model="selectedFields.author"
+									x-ref="selectAuthorField">
+									<option value="" disabled selected>Choose...</option>
 									<template x-for="[fieldName, fieldId] of fields.text">
-										<option x-bind:value="fieldId" x-text="fieldName"></option>
+										<option x-bind:value="fieldId" x-text="fieldName"
+											:selected="$data.selectedFields.author === $el.value"></option>
 									</template>
 								</select>
 							</label>
@@ -133,9 +138,12 @@
 						<div class="form-control" x-show="accepts.authorIcon">
 							<label class="label cursor-pointer flex gap-2 items-center">
 								<span>Author pfp:</span>
-								<select class="input input-bordered" x-model="selectedFields.authorIcon">
+								<select class="input input-bordered" x-model="selectedFields.authorIcon"
+									x-ref="selectAuthorIconField">
+									<option value="" disabled selected>Choose...</option>
 									<template x-for="[fieldName, fieldId] of fields.upload">
-										<option x-bind:value="fieldId" x-text="fieldName"></option>
+										<option x-bind:value="fieldId" x-text="fieldName"
+											:selected="$data.selectedFields.authorIcon === $el.value"></option>
 									</template>
 								</select>
 							</label>
@@ -145,9 +153,11 @@
 					<div class="form-control" x-show="accepts.messages">
 						<label class="label cursor-pointer flex gap-2 items-center">
 							<span>Message:</span>
-							<select class="input input-bordered" x-model="selectedFields.message" multiple>
+							<select class="input input-bordered" x-model="selectedFields.message"
+								x-ref="selectMessageFields" multiple>
 								<template x-for="[fieldName, fieldId] of fields.text">
-									<option x-bind:value="fieldId" x-text="fieldName"></option>
+									<option x-bind:value="fieldId" x-text="fieldName"
+										:selected="$data.selectedFields.message.includes($el.value)"></option>
 								</template>
 							</select>
 						</label>
@@ -156,9 +166,12 @@
 					<div class="form-control" x-show="accepts.images">
 						<label class="label cursor-pointer flex gap-2 items-center">
 							<span>Image:</span>
-							<select class="input input-bordered" x-model="selectedFields.image">
+							<select class="input input-bordered" x-model="selectedFields.image"
+								x-ref="selectImageField">
+								<option value="" disabled selected>Choose...</option>
 								<template x-for="[fieldName, fieldId] of fields.upload">
-									<option x-bind:value="fieldId" x-text="fieldName"></option>
+									<option x-bind:value="fieldId" x-text="fieldName"
+										:selected="$data.selectedFields.image === $el.value"></option>
 								</template>
 							</select>
 						</label>
@@ -167,9 +180,12 @@
 					<div class="form-control" x-show="accepts.videos">
 						<label class="label cursor-pointer flex gap-2 items-center">
 							<span>Video link:</span>
-							<select class="input input-bordered" x-model="selectedFields.videoSrc">
+							<select class="input input-bordered" x-model="selectedFields.videoSrc"
+								x-ref="selectVideoField">
+								<option value="" disabled selected>Choose...</option>
 								<template x-for="[fieldName, fieldId] of fields.text">
-									<option x-bind:value="fieldId" x-text="fieldName"></option>
+									<option x-bind:value="fieldId" x-text="fieldName"
+										:selected="$data.selectedFields.videoSrc === $el.value"></option>
 								</template>
 							</select>
 						</label>
@@ -260,8 +276,8 @@
 			step: 0,
 			alert: null,
 			accepts: {
-				messages: true,
 				authorIcon: false,
+				messages: true,
 				images: false,
 				videos: false,
 			},
@@ -274,14 +290,14 @@
 			projectsFirstRun: true,
 
 			fields: { text: [], upload: [] },
-			selectedFields: { author: '', authorIcon: '', message: [], videoSrc: '' },
+			selectedFields: { author: '', authorIcon: '', message: [], image: '', videoSrc: '' },
 			refreshingFields: false,
 			fieldsFirstRun: true,
 
 			oldData: {},
 
 			updateProjects() {
-				const currentFirstRun = this.fieldsFirstRun;
+				const currentFirstRun = this.projectsFirstRun;
 
 				if (!this.projectsFirstRun) this.refreshingProjects = true;
 				else this.projectsFirstRun = false;
@@ -291,7 +307,7 @@
 						this.alert = { type: 'error', message: 'Something went wrong. Try again.' };
 						this.refreshingProjects = false;
 
-						if (currentFirstRun) this.fieldsFirstRun = true;
+						if (currentFirstRun) this.projectsFirstRun = true;
 					})
 					.withSuccessHandler((valid) => {
 						if (!valid) {
@@ -303,20 +319,18 @@
 								this.alert = { type: 'error', message: 'Something went wrong. Try again.' };
 								this.refreshingProjects = false;
 
-								if (currentFirstRun) this.fieldsFirstRun = true;
+								if (currentFirstRun) this.projectsFirstRun = true;
 							})
 							.withSuccessHandler((projects) => {
 								this.projects = projects;
 								this.refreshingProjects = false;
 								this.alert = { type: 'success', message: 'Fetched projects.' };
-
-								// Code is here, but does nothing for selects...
-								if (currentFirstRun) this.projectId = this.oldData.projectId || this.projectId;
 							})
 							.getProjects();
 					})
 					.checkApiKey();
 			},
+			
 			updateFields() {
 				const currentFirstRun = this.fieldsFirstRun;
 
@@ -334,36 +348,51 @@
 						this.fields = fields;
 						this.refreshingFields = false;
 						this.alert = { type: 'success', message: 'Fetched fields.' };
-
-						if (currentFirstRun) {
-							// Code is here, but does nothing for selects...
-							this.selectedFields.author = (this.oldData.selectedFields && this.oldData.selectedFields.author) || this.selectedFields.author;
-							this.selectedFields.authorIcon = (this.oldData.selectedFields && this.oldData.selectedFields.authorIcon) || this.selectedFields.authorIcon;
-							this.selectedFields.message = (this.oldData.selectedFields && this.oldData.selectedFields.message) || this.selectedFields.message;
-							this.selectedFields.videoSrc = (this.oldData.selectedFields && this.oldData.selectedFields.videoSrc) || this.selectedFields.videoSrc;
-						}
 					})
 					.getFields();
 			},
-			getSetData() {
+
+			setFields() {
+				if(!this.accepts.messages && !this.accepts.images && !this.accepts.videos) {
+					this.alert = { type: 'error', message: 'Must accept at least one submission type.' };
+					return;
+				}
+
+				google.script.run
+						.withSuccessHandler(
+						function() {
+							this.alert = { type: 'success', message: 'Saved succesfully.' };
+						})
+						.withFailureHandler(
+						function() {
+							this.alert = { type: 'error', message: 'Something went wrong. Try again.' };
+						})
+						.saveFields({ enabled: accepts, selected: selectedFields});
+			},
+
+			getOldData() {
 				google.script.run
 					.withSuccessHandler((data) => {
-						// Code is here, but does nothing for selects...
-						this.selectedFields.author = (this.oldData.selectedFields && this.oldData.selectedFields.author) || this.selectedFields.author;
-						this.selectedFields.authorIcon = (this.oldData.selectedFields && this.oldData.selectedFields.authorIcon) || this.selectedFields.authorIcon;
-						this.selectedFields.message = (this.oldData.selectedFields && this.oldData.selectedFields.message) || this.selectedFields.message;
-						this.selectedFields.videoSrc = (this.oldData.selectedFields && this.oldData.selectedFields.videoSrc) || this.selectedFields.videoSrc;
+						this.oldData = data;
+						console.log(data);
+
+						this.apiKey = data.apiKey || this.apiKey;
 
 						this.accepts = data.enabledFields || this.accepts;
 
 						this.projectId = data.projectId || this.projectId;
-						this.oldData = data;
+
+						this.selectedFields.author = (this.oldData.selectedFields && this.oldData.selectedFields.author) || this.selectedFields.author;
+						this.selectedFields.authorIcon = (this.oldData.selectedFields && this.oldData.selectedFields.authorIcon) || this.selectedFields.authorIcon;
+						this.selectedFields.message = (this.oldData.selectedFields && this.oldData.selectedFields.message) || this.selectedFields.message;
+						this.selectedFields.image = (this.oldData.selectedFields && this.oldData.selectedFields.image) || this.selectedFields.image;
+						this.selectedFields.videoSrc = (this.oldData.selectedFields && this.oldData.selectedFields.videoSrc) || this.selectedFields.videoSrc;
 					})
 					.getData();
 			},
 
 			init() {
-				this.getSetData();
+				this.getOldData();
 				this.updateFields();
 				this.updateProjects();
 			},

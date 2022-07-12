@@ -2,3 +2,4 @@ node_modules/**
 .vscode/
 tailwind.config.js
 utils/**
+.eslintrc.js
