@@ -1,1 +1,2 @@
-# hef-form-script
+# HEFW Form Script
+A Google Apps Script for integration from Google Forms with our CMS. Never went into production due to limitations of Apps Script (incredibly slow upload rates for images, invocation limits and small window).
